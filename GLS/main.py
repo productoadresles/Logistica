@@ -84,6 +84,8 @@ async def shipment_create_gls(req: paqueteList):
             uid = uidAgencia815
         if (req.id_agencia == "gls214" or req.id_agencia == "214"):
             uid = uidAgencia214
+        if (req.id_agencia == "tramicar" or req.id_agencia == "tramicar"):
+            uid = uidAgencia214
     else:
         uid = uidClientePruebas
 
