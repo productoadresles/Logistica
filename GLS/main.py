@@ -73,7 +73,7 @@ async def shipment_create_gls(req: paqueteList):
     uidClientePruebas = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11"
     uidAgencia815 = "8412161e-a861-4ba4-9060-087f4c14078c"
     uidAgencia214 = "4f7845c1-8e91-4b76-92de-9cc0d59ea1d9"
-
+    uidTramicar = "2263ced7-1618-47d2-8d8f-dde90c5729b8"
 
     if (req.prod == 1):
         if (req.id_agencia == ""):
