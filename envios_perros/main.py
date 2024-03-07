@@ -16,7 +16,7 @@ false = False
 
 class ReqShipmentCreate(BaseModel):
     deliveryType: str
-    prod: str
+    prod: int
     fecha_recogida: str
     hora_recogida_desde: str
     deliveryType: str
@@ -74,17 +74,15 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
     
     # orders
     
-    if(req.prod == '1'):
+    if(req.prod == 1):
         url_orders = "https://app.enviosperros.com/api/v2/orders"
         url_mock_guide_pruebas = "https://app.enviosperros.com/api/v2/guide/order"
         url_mock_pickup_pruebas = "https://app.enviosperros.com/api/v2/pickup"
         headers = {
-            'Authorization': 'Bearer Dh2vxj1C4Mclp1Op26ifaBRoGfQ3frCsWCFDgYMG',
+            'Authentication': 'Bearer cAxxTc0PStaY1e6szt19q2OKV5WF0Ul8M9uQzAa39L0LazOocAQA7rCWCw8x',
             'Content-Type': 'application/json'
         }  
-         
-    
-    elif (req.prod == "0"): 
+    elif (req.prod == 0): 
         url_orders = "https://staging-app.enviosperros.com/api/v2/orders"
         url_mock_guide_pruebas = "https://staging-app.enviosperros.com/api/v2/guide/order"
         url_mock_pickup_pruebas = "https://staging-app.enviosperros.com/api/v2/pickup"
@@ -97,7 +95,7 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
 
     payload = json.dumps({
         "deliveryType": req.deliveryType,
-        "discount_code": "000",
+        "discount_code": "97bJw2H6hmjM",
         "packageSize": {
             "type": req.type,
             "depth": req.depth,
@@ -149,12 +147,12 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
     # print(request)
 
     print(headers)
-    print(url_orders)
-    print(payload)
+    # print(url_orders)
+    # print(payload)
     response = requests.request("POST", url_orders, headers=headers, data=payload)
-    print(response)
-    print(response.request)
-    print(response.json)
+    # print(response)
+    # print(response.request)
+    print(response.text)
    
     data2 = response.text
     
