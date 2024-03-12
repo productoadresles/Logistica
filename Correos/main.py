@@ -4,13 +4,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from mangum import Mangum
 import random
-import string
 
 import requests
 import json
 import xml.dom.minidom
 import xmltodict
-import unicodedata
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -23,7 +21,19 @@ class back(BaseModel):
     id_usuario: str
 
 
-class paquete2(BaseModel):
+class Package(BaseModel):
+    peso: int
+    largo: Optional[int] = None
+    alto: Optional[int] = None
+    ancho: Optional[int] = None
+    observaciones_salida: Optional[str] = None
+
+class Shipment(BaseModel):
+    prod: int
+    id_agencia: str
+    cantidad: int
+    webservice: str
+    client_uid: str
     pickup_from: Optional[str] = None
     pickup_until: Optional[str] = None
     codigos_origen: str
@@ -32,25 +42,15 @@ class paquete2(BaseModel):
     direccion_llegada: str
     email_llegada: str
     email_salida: str
-    fecha_recogida: str
-    fecha_entrega: Optional[str] = None
-    nombre_llegada: str
-    nombre_salida: str
-    observaciones_llegada: Optional[str] = None
-    observaciones_salida: Optional[str] = None
-    peso: int
     poblacion_llegada: str
     poblacion_salida: str
     telefono_llegada: Optional[str] = None
     telefono_salida: str
-
-class paqueteList(BaseModel):
-    id_agencia: str
-    prod: int
-    cantidad: int
-    webservice: str
-    client_uid: str
-    paquete: List[paquete2]
+    fecha_recogida: str
+    fecha_entrega: Optional[str] = None
+    nombre_llegada: str
+    nombre_salida: str
+    packageList: List[Package]
 
 class ReqStatus(BaseModel):
     prod: int
@@ -69,151 +69,114 @@ async def root():
 
 
 @app.post("/shipment_create_correos")
-async def shipment_create_correos(req: paqueteList):
-        
-    # URL GLS
-    url = "https://wsclientes.asmred.com/b2b.asmx?wsdl"
+async def shipment_create_correos(req: Shipment):
+
+    if req.prod == 0:    
+        # URL CORREOS
+        url = "https://preregistroenviospre.correos.es/?wsdl" #still pointing at pre
+    elif req.prod == 1:
+        return "That's enough!"
 
     
-
-
     #  Generación de la referencia tipo C
     def random_with_N_digits(n):
         range_start = 10**(n-1)
         range_end = (10**n)-1
         return random.randint(range_start, range_end)
 
-    payload = f"""<?xml version="1.0" encoding="utf-8"?>
-                    <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-                    <soap12:Body>
-                    <GrabaServicios  xmlns="http://www.asmred.com/">
-                    <docIn>
-                        <Servicios uidcliente="{req.client_uid}" xmlns="http://www.asmred.com/">"""                       
+    payload = f"""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:prer="http://www.correos.es/iris6/services/preregistroetiquetas">
+        <soapenv:Header/>
+        <soapenv:Body>"""
+
+    payload2 = f""""""
     if (req.webservice == 'shipment'):
-        i = 0
-        while i <= req.cantidad:
-            b = 0
-            payloadB = f""""""
-            results = req.paquete[b]
-            
-            payload2 = f"""     
-                        <Envio codbarras="">
-                            <Fecha dia="{results.fecha_recogida}">
-                            </Fecha>
-                            <FechaPrevistaEntrega>
-                            </FechaPrevistaEntrega>
-                            <Portes>P</Portes>
-                            <Servicio>1</Servicio>
-                            <Horario>2</Horario>
-                            <Bultos>1</Bultos>
-                            <Peso>{results.peso}</Peso>
-                            <Retorno>0</Retorno>
-                            <Pod>N</Pod>
-                            <Remite>
-                                <Plaza></Plaza>
-                                <Nombre>{results.nombre_salida}</Nombre>
-                                <Direccion>{results.direccion_salida}</Direccion>
-                                <Poblacion>{results.poblacion_salida}</Poblacion>
-                                <Provincia>{results.poblacion_salida}</Provincia>
-                                <Pais>34</Pais>
-                                <CP>{results.codigos_origen}</CP>
-                                <Telefono>{results.telefono_salida}</Telefono>
-                                <Movil></Movil>
-                                <Email>{results.email_salida}</Email>
-                                <Observaciones>{results.observaciones_salida}</Observaciones>
-                            </Remite>
-                            <Destinatario>
-                                <Codigo></Codigo>
-                                <Plaza></Plaza>
-                                <Nombre>{results.nombre_llegada}</Nombre>
-                                <Direccion>{results.direccion_llegada}</Direccion>
-                                <Poblacion>{results.poblacion_llegada}</Poblacion>
-                                <Provincia>{results.poblacion_llegada}</Provincia>
-                                <Pais>34</Pais>
-                                <CP>{results.codigos_destino}</CP>
-                                <Telefono>{results.telefono_llegada}</Telefono>
-                                <Movil>{results.telefono_llegada}</Movil>
-                                <Email>{results.email_llegada}</Email>
-                                <Observaciones>{results.observaciones_llegada}</Observaciones>
-                                <ATT>{results.nombre_llegada}</ATT>
-                            </Destinatario>
-                            <Referencias>
-                                <DevuelveAdicionales>
-                                        <Etiqueta tipo="PDF"></Etiqueta>
-                                </DevuelveAdicionales>
-                            </Referencias>
-                        </Envio>"""
-            payloadB += payload2
-            b = b+1
-            i = i+1
- 
-    if (req.webservice == 'pickup'):                     
-        i = 0
-        while i <= req.cantidad:
-            b = 0
-            payloadB = f""""""
-            results = req.paquete[b]
-            print(results)
-            payload2 = f"""     
-                        <Recogida codrecogida="">
-                            <Horarios>
-                                <Fecha dia="{results.fecha_recogida}">
-                                    <Horario desde="{results.pickup_from}" hasta="{results.pickup_until}" />
-                                </Fecha>
-                            </Horarios>
-                            <RecogerEn>
-                                <Nombre>{results.nombre_salida}</Nombre>
-                                <Direccion>{results.direccion_salida}</Direccion>
-                                <Poblacion>{results.poblacion_salida}</Poblacion>
-                                <Pais>34</Pais>
-                                <CP>{results.codigos_origen}</CP>
-                                <Telefono>{results.telefono_salida}</Telefono>
-                                <Email>{results.email_salida}</Email>
-                                <Observaciones>{results.observaciones_salida}</Observaciones>
-                                <Contacto></Contacto>
-                            </RecogerEn>
-                            <DevuelveAdicionales>
-                                <Etiqueta tipo="PDF"></Etiqueta>
-                            </DevuelveAdicionales>
-                            <Entregas>
-                                <Envio>
-                                    <FechaPrevistaEntrega>
-                                        <Fecha dia="{results.fecha_entrega}">
-                                            <Horario desde="10:00" hasta="16:00" />
-                                        </Fecha>
-                                    </FechaPrevistaEntrega>
-                                    <Portes>P</Portes>
-                                    <Servicio>1</Servicio>
-                                    <Horario>2</Horario>
-                                    <Bultos>1</Bultos>
-                                    <Peso>{results.peso}</Peso>
-                                    <Retorno>0</Retorno>
-                                    <Pod>N</Pod>
-                                    <Destinatario>
-                                        <Nombre>{results.nombre_llegada}</Nombre>
-                                        <Direccion>{results.direccion_llegada}</Direccion>
-                                        <Poblacion>{results.poblacion_llegada}</Poblacion>
-                                        <Pais>34</Pais>
-                                        <CP>{results.codigos_destino}</CP>
-                                        <Telefono>{results.telefono_llegada}</Telefono>
-                                        <Movil>{results.telefono_llegada}</Movil>
-                                        <Email>{results.email_llegada}</Email>
-                                        <Observaciones>{results.observaciones_llegada}</Observaciones>
-                                        <ATT>{results.nombre_llegada}</ATT>
-                                    </Destinatario>
-                                </Envio>
-                            </Entregas>
-                        </Recogida>"""
-            payloadB += payload2
-            b = b+1
-            i = i+1    
-    
-    
-    payload3 = f"""     </Servicios>
-                        </docIn>
-                    </GrabaServicios>
-                    </soap12:Body>
-                    </soap12:Envelope>"""
+        #setup the first part of the shipment info (addresses and contacts)
+        payloadB = f"""
+            <prer:PreregistroEnvioMultibulto>
+                <prer:FechaOperacion>{req.fecha_recogida}</prer:FechaOperacion>
+                <prer:CodEtiquetador>XXX1</prer:CodEtiquetador>
+                <prer:Care>000000</prer:Care>
+                <prer:TotalBultos>{req.cantidad}</prer:TotalBultos>
+                <prer:ModDevEtiqueta>2</prer:ModDevEtiqueta>
+                <prer:Remitente>
+                
+                    <prer:Identificacion>
+                    <prer:Nombre>{req.nombre_salida}</prer:Nombre>
+                    </prer:Identificacion>
+                    
+                    <prer:DatosDireccion>
+                    <prer:Direccion>{req.direccion_salida}</prer:Direccion>
+                    <prer:Localidad>{req.poblacion_salida}</prer:Localidad>
+                    </prer:DatosDireccion>
+                    
+                    <prer:CP>{req.codigos_origen}</prer:CP>
+                    <prer:Telefonocontacto>{req.telefono_salida}</prer:Telefonocontacto>
+                    <prer:Email>{req.email_salida}</prer:Email>
+                
+                    <prer:DatosSMS>
+                    <prer:NumeroSMS>{req.telefono_salida}</prer:NumeroSMS>
+                    </prer:DatosSMS>
+                    
+                </prer:Remitente>
+                
+                <prer:Destinatario>
+                    <prer:Identificacion>
+                    <prer:Nombre>{req.nombre_llegada}</prer:Nombre>
+                    </prer:Identificacion>
+                    
+                    <prer:DatosDireccion>
+                    <prer:Direccion>{req.direccion_llegada}</prer:Direccion>
+                    <prer:Localidad>{req.poblacion_llegada}</prer:Localidad>
+                    <prer:Provincia>{req.poblacion_llegada}</prer:Provincia>
+                    </prer:DatosDireccion>
+                    
+                    <prer:CP>{req.codigos_destino}</prer:CP>
+                    <prer:Telefonocontacto>{req.telefono_llegada}</prer:Telefonocontacto>
+                    <prer:Email>{req.email_llegada}</prer:Email>
+                    <DatosSMS>
+                    <NumeroSMS>{req.telefono_llegada}</NumeroSMS>
+                    </DatosSMS>
+                </prer:Destinatario>"""
+        
+        print(req.cantidad)
+        for i in range(req.cantidad):
+            print('Current doc', i)
+            packages = req.packageList[i]
+            #print(packages)
+            payloadPackages = f"""
+                    <prer:Envios>
+                        <prer:Envio>
+                        <prer:NumBulto>{i+1}</prer:NumBulto>
+
+                        <prer:Pesos>
+                            <prer:Peso>
+                                <prer:TipoPeso>R</prer:TipoPeso>
+                                <prer:Valor>{packages.peso}</prer:Valor>
+                            </prer:Peso>
+                        </prer:Pesos>
+                        <prer:Largo>{packages.largo}</prer:Largo>
+                        <prer:Alto>{packages.alto}</prer:Alto>
+                        <prer:Ancho>{packages.ancho}</prer:Ancho>
+                        <Observaciones1>{packages.observaciones_salida}</Observaciones1>
+                        </prer:Envio>
+                        
+                    </prer:Envios>  
+
+                    """
+            payloadB += payloadPackages
+
+        payload2 += payloadB + f"""
+                <prer:EntregaParcial></prer:EntregaParcial>
+                    <prer:CodProducto>S0132</prer:CodProducto>
+                    <prer:ReferenciaExpedicion></prer:ReferenciaExpedicion>
+                    <prer:ModalidadEntrega>ST</prer:ModalidadEntrega>
+                    <prer:TipoFranqueo>FP</prer:TipoFranqueo>
+                </prer:PreregistroEnvioMultibulto>   """    
+    payload3 = f"""
+        </soapenv:Body>
+    </soapenv:Envelope>"""
 
     # Cabeceras
     headers = {
@@ -221,31 +184,19 @@ async def shipment_create_correos(req: paqueteList):
     }
 
     # Request
-    print(payload+payload2+payload3)
+    #print(payload+payload2+payload3)
     response = requests.post( url = url, headers=headers, data=payload+payload2+payload3)
     contesta = (response.text)
-    # print(response)
+    print('Response: ',response)
+    print('Contesta: ',contesta)
 
     # Parsing
     contesta_dict = xmltodict.parse(contesta)
 
-    # print(contesta_dict) 
+    print(contesta_dict) 
 
 
     # Resultados
-    if(req.webservice == 'pickup'):
-        resultado_dict = contesta_dict['soap:Envelope']['soap:Body']['GrabaServiciosResponse']['GrabaServiciosResult']['Servicios']['Recogida']['Resultado']['@return']
-        if resultado_dict == '0':
-            codigo_recogida = contesta_dict['soap:Envelope']['soap:Body']['GrabaServiciosResponse']['GrabaServiciosResult']['Servicios']['Recogida']['@codigo']
-            etiqueta = contesta_dict['soap:Envelope']['soap:Body']['GrabaServiciosResponse']['GrabaServiciosResult']['Servicios']['Recogida']['Etiquetas']['Etiqueta']['#text']
-            if req.id_agencia == "":
-                agencia = "329"
-            else:
-                agencia = req.id_agencia
-            devuelve = {'resultado': '1', "codigo_envio": 0, "codigo_recogida": codigo_recogida, "id_agencia": agencia, "etiqueta": etiqueta}
-        else:
-            devuelve = {'resultado': "0", "codigo_envio": resultado_dict, "codigo_recogida": contesta_dict['soap:Envelope']['soap:Body']['GrabaServiciosResponse']['GrabaServiciosResult']['Servicios']['Recogida']['Errores']['Error']}
-
     if(req.webservice == 'shipment'):
         resultado_dict = contesta_dict['soap:Envelope']['soap:Body']['GrabaServiciosResponse']['GrabaServiciosResult']['Servicios']['Envio']['Resultado']['@return']
         if resultado_dict == '0':
@@ -262,88 +213,3 @@ async def shipment_create_correos(req: paqueteList):
 
     # print(payload+payload2+payload3)
     return devuelve
-
-
-@app.post("/status_correos")
-async def status_correos(request: ReqStatus):
-    
-    
-    # URL GLS
-    url = "https://wsclientes.asmred.com/b2b.asmx?wsdl"
-
-    # Variables para grabar servicio
-    uidClienteProd = "d0cceea3-15a4-428e-9754-cd17777de34f"
-    uidClientePruebas = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11"
-    uidAgencia815 = "8412161e-a861-4ba4-9060-087f4c14078c"
-    uidAgencia214 = "4f7845c1-8e91-4b76-92de-9cc0d59ea1d9"
-
-    # if (request.prod == 1):
-    #     if (request.id_agencia == ""):
-    #         uid = uidClienteProd
-    #     if (request.id_agencia == "329"):
-    #         uid = uidClienteProd
-    #     if (request.id_agencia == "gls815"):
-    #         uid = uidAgencia815
-    #     if (request.id_agencia == "gls214"):
-    #         uid = uidAgencia214
-    # else:
-    #     uid = uidClientePruebas
-
-    # if (request.prod == 1):
-    #     if (request.id_agencia == ""):
-    #         uid = uidClienteProd
-    #     if (request.id_agencia == "gls329" or request.id_agencia == "329"):
-    #         uid = uidClienteProd
-    #     if (request.id_agencia == "gls815" or request.id_agencia == "815"):
-    #         uid = uidAgencia815
-    #     if (request.id_agencia == "gls214" or request.id_agencia == "214"):
-    #         uid = uidAgencia214
-    # else:
-    #     uid = uidClientePruebas
-    
-    # Orden XML
-
-    payload_rastrear = f"""<?xml version="1.0" encoding="utf-8"?>
-                    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns="http://www.asmred.com/"><soap:Header/>
-                    <soap:Body>
-                        <GetExpCli>
-                            <codigo>{request.codigo_recogida}</codigo>
-                            <uid>{request.client_uid}</uid>
-                        </GetExpCli>
-                    </soap:Body>
-                    </soap:Envelope>"""
-
-    # Cabeceras
-    headers = {
-        'Content-Type': 'text/xml; charset=UTF-8'
-    }
-    
-    
-    response = requests.post(url, headers=headers, data=payload_rastrear)
-
-    contesta = (response.text)
-
-    contesta_dict = xmltodict.parse(contesta)
-    
-    if "exp" in contesta_dict["soap:Envelope"]["soap:Body"]["GetExpCliResponse"]["GetExpCliResult"]["expediciones"]:
-        cp_destino = contesta_dict["soap:Envelope"]["soap:Body"]["GetExpCliResponse"]["GetExpCliResult"]["expediciones"]["exp"]["cp_dst"]
-        codexp = contesta_dict["soap:Envelope"]["soap:Body"]["GetExpCliResponse"]["GetExpCliResult"]["expediciones"]["exp"]["codexp"]
-        web_seguimiento = f"""https://m.gls-spain.es/e/{codexp}/{cp_destino}"""
-        respuesta = {
-            "estado": contesta_dict['soap:Envelope']['soap:Body']['GetExpCliResponse']['GetExpCliResult']['expediciones']['exp']['codestado'],
-            "nombre_estado": contesta_dict['soap:Envelope']['soap:Body']['GetExpCliResponse']['GetExpCliResult']['expediciones']['exp']['estado'],
-            "codigo_recogida": request.codigo_recogida,
-            "web_seguimiento": web_seguimiento
-            }
-    else:
-        respuesta = {
-            "estado": "0",
-            "nombre_estado": "not created",
-            "codigo_recogida": "false",
-            "web_seguimiento": "false"
-            }
-
-    print(payload_rastrear)
-    print(contesta_dict)
-    return respuesta
-    #return contesta
