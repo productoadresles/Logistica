@@ -16,7 +16,7 @@ import xmltodict
 # from correos_preregistro.client import RawClient as Client
 # from correos_preregistro.requests.preregistro_envio import  as Client
 # from correos_preregistro.resources import Package, Receiver, Sender
-#from vars import PRE_URL, URL
+from vars import PRE_URL, URL
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -144,36 +144,32 @@ async def shipment_create_correos(req: Shipment):
                     <DatosSMS>
                     <NumeroSMS>{req.telefono_llegada}</NumeroSMS>
                     </DatosSMS>
-                </prer:Destinatario>"""
-        
+                </prer:Destinatario>
+                <prer:Envios>"""        
         print(req.cantidad)
         for i in range(req.cantidad):
             print('Current doc', i)
             packages = req.packageList[i]
             #print(packages)
             payloadPackages = f"""
-                    <prer:Envios>
                         <prer:Envio>
-                        <prer:NumBulto>{i+1}</prer:NumBulto>
-
-                        <prer:Pesos>
-                            <prer:Peso>
-                                <prer:TipoPeso>R</prer:TipoPeso>
-                                <prer:Valor>{packages.peso}</prer:Valor>
-                            </prer:Peso>
-                        </prer:Pesos>
-                        <prer:Largo>{packages.largo}</prer:Largo>
-                        <prer:Alto>{packages.alto}</prer:Alto>
-                        <prer:Ancho>{packages.ancho}</prer:Ancho>
-                        <Observaciones1>{packages.observaciones_salida}</Observaciones1>
-                        </prer:Envio>
-                        
-                    </prer:Envios>  
-
+                            <prer:NumBulto>{i+1}</prer:NumBulto>
+                            <prer:Pesos>
+                                <prer:Peso>
+                                    <prer:TipoPeso>R</prer:TipoPeso>
+                                    <prer:Valor>{packages.peso}</prer:Valor>
+                                </prer:Peso>
+                            </prer:Pesos>
+                            <prer:Largo>{packages.largo}</prer:Largo>
+                            <prer:Alto>{packages.alto}</prer:Alto>
+                            <prer:Ancho>{packages.ancho}</prer:Ancho>
+                            <Observaciones1>{packages.observaciones_salida}</Observaciones1>
+                        </prer:Envio>                        
                     """
             payloadB += payloadPackages
 
         payload2 += payloadB + f"""
+                </prer:Envios>  
                 <prer:EntregaParcial></prer:EntregaParcial>
                     <prer:CodProducto>S0132</prer:CodProducto>
                     <prer:ReferenciaExpedicion></prer:ReferenciaExpedicion>
@@ -190,7 +186,7 @@ async def shipment_create_correos(req: Shipment):
     }
 
     # Request
-    #print(payload+payload2+payload3)
+    print(payload+payload2+payload3)
     response = requests.post( url = url, headers=headers, auth=(req.user, req.password), data=(payload+payload2+payload3).encode("utf-8"))
     contesta = (response.text)
     print('Response: ',response)
@@ -199,7 +195,7 @@ async def shipment_create_correos(req: Shipment):
     # Parsing
     contesta_dict = xmltodict.parse(contesta)
 
-    print(contesta_dict) 
+    # print(contesta_dict) 
 
 
     # Resultados
