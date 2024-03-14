@@ -79,8 +79,9 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
         url_mock_guide_pruebas = "https://app.enviosperros.com/api/v2/guide/order"
         url_mock_pickup_pruebas = "https://app.enviosperros.com/api/v2/pickup"
         headers = {
-            'Authentication': 'Bearer cAxxTc0PStaY1e6szt19q2OKV5WF0Ul8M9uQzAa39L0LazOocAQA7rCWCw8x',
-            'Content-Type': 'application/json'
+            'Authorization': 'Bearer LN6kxQZM1xqhUYwjNCfEVy4DeVv5ARVUN9hiSpsd',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }  
     elif (req.prod == 0): 
         url_orders = "https://staging-app.enviosperros.com/api/v2/orders"
@@ -144,7 +145,7 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
         }
         })
     
-    # print(request)
+    print(payload)
 
     print(headers)
     # print(url_orders)
@@ -205,7 +206,7 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
     elif (req.deliveryType == "EXPRESS_DOMESTIC" or req.deliveryType == "ECONOMY_SELECT_DOMESTIC"):
         urlsegui = "https://www.dhl.com/mx-es/home/tracking/tracking-ecommerce.html?submit=1&tracking-id="+referencia
     elif (req.deliveryType == "STD-T"):
-         urlsegui = "https://www.paquetexpress.com.mx/rastreo/"+referencia+"&flag=1"
+         urlsegui = "https://www.paquetexpress.com.mx/rastreo/"+referencia
     # elif (req.deliveryType == "METROPOLITANO"):
     #     urlsegui = "https://www.paquetexpress.com.mx/rastreo/"+referencia
 
