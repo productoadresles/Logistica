@@ -6,9 +6,17 @@ from mangum import Mangum
 import random
 
 import requests
+from requests.auth import HTTPBasicAuth
+
 import json
 import xml.dom.minidom
 import xmltodict
+
+# from correos_preregistro.vars import PRE_URL, URL
+# from correos_preregistro.client import RawClient as Client
+# from correos_preregistro.requests.preregistro_envio import  as Client
+# from correos_preregistro.resources import Package, Receiver, Sender
+#from vars import PRE_URL, URL
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -51,6 +59,8 @@ class Shipment(BaseModel):
     nombre_llegada: str
     nombre_salida: str
     packageList: List[Package]
+    user: str
+    password: str
 
 class ReqStatus(BaseModel):
     prod: int
@@ -71,12 +81,9 @@ async def root():
 @app.post("/shipment_create_correos")
 async def shipment_create_correos(req: Shipment):
 
-    if req.prod == 0:    
-        # URL CORREOS
-        url = "https://preregistroenviospre.correos.es/?wsdl" #still pointing at pre
-    elif req.prod == 1:
-        return "That's enough!"
-
+    # URL CORREOS
+    url = (PRE_URL if req.prod == 0 else URL)#+"?wsdl"
+    print('URL: ',url)
     
     #  Generación de la referencia tipo C
     def random_with_N_digits(n):
@@ -85,7 +92,6 @@ async def shipment_create_correos(req: Shipment):
         return random.randint(range_start, range_end)
 
     payload = f"""
-    <?xml version="1.0" encoding="UTF-8"?>
     <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:prer="http://www.correos.es/iris6/services/preregistroetiquetas">
         <soapenv:Header/>
         <soapenv:Body>"""
@@ -185,7 +191,7 @@ async def shipment_create_correos(req: Shipment):
 
     # Request
     #print(payload+payload2+payload3)
-    response = requests.post( url = url, headers=headers, data=payload+payload2+payload3)
+    response = requests.post( url = url, headers=headers, auth=(req.user, req.password), data=(payload+payload2+payload3).encode("utf-8"))
     contesta = (response.text)
     print('Response: ',response)
     print('Contesta: ',contesta)
