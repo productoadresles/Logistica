@@ -89,7 +89,8 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
         url_mock_pickup_pruebas = "https://staging-app.enviosperros.com/api/v2/pickup"
         headers = {
             'Authorization': 'Bearer Dh2vxj1C4Mclp1Op26ifaBRoGfQ3frCsWCFDgYMG',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }  
 
     auth_stagging = "Dh2vxj1C4Mclp1Op26ifaBRoGfQ3frCsWCFDgYMG"
