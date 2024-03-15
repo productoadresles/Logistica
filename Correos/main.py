@@ -6,13 +6,13 @@ from mangum import Mangum
 import random
 
 import requests
-from requests.auth import HTTPBasicAuth
 
 import json
 import xml.dom.minidom
 import xmltodict
 
 from vars import PICKUP_AUTH, PICKUP_PRE_AUTH, PICKUP_PRE_URL, PICKUP_URL, PR_PRE_URL, PR_URL, PREREGISTER_AUTH, PREREGISTER_PRE_AUTH
+from recogidas import Recogidas_Request, Recodigas_Response, Recogidas_Details
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -224,14 +224,16 @@ async def preregister_correos(req: Shipment):
     return devuelve
 
 @app.post("/Pickup")
-async def pickup_correos (req: Shipment):
+async def pickup_correos (req: Recogidas_Request):
+    print(req)
+    print(req.recogidasDetalles)
 
     if req.prod == 0:
         auth = PICKUP_PRE_AUTH
         url = PICKUP_PRE_URL
-        contract = "99999999"
-        detallable = "99999999"
-        Annex = "091"
+        req.numContrato = 99999999
+        req.numDetallable = 99999999
+        req.recogidasDetalles.codAnexo = "091"
     else:
         auth = PICKUP_AUTH
         url = PICKUP_URL
@@ -240,10 +242,58 @@ async def pickup_correos (req: Shipment):
     headers = {
         'Content-Type': 'text/xml; charset=UTF-8'
     }
-    payload = f""""""
 
-    #response = requests.post(url=url, auth=auth, headers=headers data=payload)
+    payload = f"""
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://www.correos.es/ServicioPuertaAPuertaBackOffice" xmlns:ser1="http://www.correos.es/ServicioPuertaAPuerta">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <ser:SolicitudRegistroRecogida>
+            <ReferenciaRelacionPaP>{req.referenciaRelacionPaP}</ReferenciaRelacionPaP>
+            <TipoOperacion>>{req.tipoOperacion}</TipoOperacion>
+            <FechaOperacion>>{req.fechaOperacion}</FechaOperacion>
+            <NumContrato>>>{req.numContrato}</NumContrato>
+            <NumDetallable>>{req.numDetallable}</NumDetallable>
+            <CodSistema>>{req.CodSistema}</CodSistema>
+            <CodUsuario>>{req.codUsuario}</CodUsuario>
+            <ser1:Recogida>
+                <ReferenciaRecogida>{req.recogidasDetalles.referenciaRecogida if req.recogidasDetalles.referenciaRecogida != "" else req.referenciaRelacionPaP}</ReferenciaRecogida>
+                <FecRecogida>{req.recogidasDetalles.fecRecogida}</FecRecogida>
+                <HoraRecogida>{req.recogidasDetalles.horaRecogida}</HoraRecogida>
+                <CodAnexo>{req.recogidasDetalles.codAnexo}</CodAnexo>
+                <NomNombreViaRec>{req.recogidasDetalles.nomNombreViaRec}</NomNombreViaRec>
+                <NomLocalidadRec>{req.recogidasDetalles.nomLocalidadRec}</NomLocalidadRec>
+                <CodigoPostalRecogida>{req.recogidasDetalles.codigoPostalRecogida}</CodigoPostalRecogida>
+                <DesPersonaContactoRec>{req.recogidasDetalles.desPersonaContactoRec}</DesPersonaContactoRec>
+                <DesTelefContactoRec>{req.recogidasDetalles.desTelefContactoRec}</DesTelefContactoRec>
+                <DesEmailContactoRec>{req.recogidasDetalles.desEmailContactoRec}</DesEmailContactoRec>
+                <DesObservacionRec>{req.recogidasDetalles.desObservacionRec}</DesObservacionRec>
+                <NumEnvios>{req.recogidasDetalles.numEnvios}</NumEnvios>
+                <NumPeso>{req.recogidasDetalles.numPeso}</NumPeso>
+                <TipoPesoVol>{req.recogidasDetalles.tipoPesoVol}</TipoPesoVol>
+                <IndImprimirEtiquetas>{req.recogidasDetalles.indImprimirEtiquetas}</IndImprimirEtiquetas>
+                <IndDevolverCodSolicitud>{req.recogidasDetalles.indDevolverCodSolicitud}</IndDevolverCodSolicitud>
+                <ser1:ListaCodEnvios>"""
+    
+    for i in req.recogidasDetalles.listaCodEnvios:
+                    payload += f"""
+                    <CodigoEnvio>{i}</CodigoEnvio>
+                    """
+    
+    payload += f"""
+                </ser1:ListaCodEnvios>
+            </ser1:Recogida>
+        </ser:SolicitudRegistroRecogida>
+    </soapenv:Body>
+</soapenv:Envelope>
+"""
 
+    response = requests.post(url=url, auth=auth, headers=headers, data=payload)
+    response_body = xmltodict.parse(response.text)['soapenv:Envelope']['soapenv:Body']['SolicitudRegistroRecogidaResult']['RespuestaSolicitudRegistroRecogida']
+
+    devuelve = Recodigas_Response(codigoError=response_body['CodigoError'],
+                                  descripcionError=response_body['DescripcionError'],
+                                  codSolicitud=response_body['CodSolicitud'])
+    return devuelve
 
 @app.post("/ReqStatus")
 async def reqstatus_correos (req: Shipment):
