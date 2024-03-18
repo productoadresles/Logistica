@@ -1,9 +1,10 @@
 from typing import Optional
 from typing import List
-from fastapi import FastAPI
+from fastapi import FastAPI, Path
 from pydantic import BaseModel
 from mangum import Mangum
 import random
+import base64
 
 import requests
 
@@ -11,8 +12,18 @@ import json
 import xml.dom.minidom
 import xmltodict
 
-from vars import PICKUP_AUTH, PICKUP_PRE_AUTH, PICKUP_PRE_URL, PICKUP_URL, PR_PRE_URL, PR_URL, PREREGISTER_AUTH, PREREGISTER_PRE_AUTH
-from recogidas import Recogidas_Request, Recodigas_Response, Recogidas_Details
+#Pre register shipment vars
+from vars import PR_PRE_URL, PR_URL, PREREGISTER_AUTH, PREREGISTER_PRE_AUTH
+from preregistro import PreRegister_Response, PreRegister_Response_File, PreRegister_Response_Package, Shipment
+
+#Pickup vars
+from vars import PICKUP_PRE_URL, PICKUP_URL, PICKUP_AUTH, PICKUP_PRE_AUTH
+from recogidas import Recogidas_Request, Recodigas_Response
+
+#Tracking vars
+from vars import TRACK_PRE_URL, TRACK_URL, TRACK_AUTH, TRACK_PRE_AUTH
+from seguimiento import Tracking_Response
+
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -24,60 +35,12 @@ class back(BaseModel):
     servicio: str
     id_usuario: str
 
-
-
-## Pre registro response package list
-class PreRegister_Response_File(BaseModel):
-    nombreFicheiro: str
-    tipoDoc: str
-    ficheiroBinario: str
-    
-## Pre registro response package list
-class PreRegister_Response_Package(BaseModel):
-    numBulto: int
-    codEnvio: str
-    codManifiesto: str
-    ficheiro: PreRegister_Response_File
-
-## Pre registro response
-class PreRegister_Response(BaseModel):
-    resultado: int
-    codExpedicion: str
-    fechaRespuesta: str
-    bultos: List[PreRegister_Response_Package]
-    
-class Package(BaseModel):
-    peso: int
-    largo: Optional[int] = None
-    alto: Optional[int] = None
-    ancho: Optional[int] = None
-    observaciones_salida: Optional[str] = None
-
-class Shipment(BaseModel):
-    prod: int
-    id_agencia: str
-    cantidad: int
-    client_uid: str
-    codigos_origen: str
-    codigos_destino: str
-    direccion_salida: str
-    direccion_llegada: str
-    email_llegada: str
-    email_salida: str
-    poblacion_llegada: str
-    poblacion_salida: str
-    telefono_llegada: Optional[str] = None
-    telefono_salida: str
-    fecha_operacion: str
-    nombre_llegada: str
-    nombre_salida: str
-    packageList: List[Package]
-
 class ReqStatus(BaseModel):
     prod: int
     id_agencia: str
     client_uid: str
     codigo_recogida: str
+     
 
 app = FastAPI()
 
@@ -88,9 +51,10 @@ async def root():
     return {"message": "Hello World"}
     
 
-@app.post("/PreRegister")
+@app.post("/PreRegister",
+          description="Pre register a package and address for shipping with Correos")
 async def preregister_correos(req: Shipment):
-
+    
     #auth = (user, password)
     auth = (PREREGISTER_PRE_AUTH if req.prod == 0 else PREREGISTER_AUTH)
 
@@ -199,7 +163,7 @@ async def preregister_correos(req: Shipment):
     #print(payload+payload2+payload3)
     response = requests.post( url = url, headers=headers, auth=auth, data=(payload+payload2+payload3).encode("utf-8"))
     contesta = (response.text)
-    #print('Response: ',response)
+    print('Response: ',response)
     #print('Contesta: ',contesta)
 
     contesta_dict = xmltodict.parse(contesta)
@@ -223,10 +187,11 @@ async def preregister_correos(req: Shipment):
     #print('Resultado:',devuelve.resultado, ', codExpedicion:', devuelve.codExpedicion, ', fechaRespuesta:',devuelve.fechaRespuesta, ', numBultos:',len(devuelve.bultos))
     return devuelve
 
-@app.post("/Pickup")
+@app.post("/Pickup",
+          description="Setup a pickup from correos for a previously registered shipment")
 async def pickup_correos (req: Recogidas_Request):
-    print(req)
-    print(req.recogidasDetalles)
+    #print(req)
+    #print(req.recogidasDetalles)
 
     if req.prod == 0:
         auth = PICKUP_PRE_AUTH
@@ -295,7 +260,42 @@ async def pickup_correos (req: Recogidas_Request):
                                   codSolicitud=response_body['CodSolicitud'])
     return devuelve
 
-@app.post("/ReqStatus")
-async def reqstatus_correos (req: Shipment):
-    
-    url = ""
+@app.get("/Tracking/{prod}&shipments={shipments}",
+         description="Get tracking status from the shipment")
+async def tracking_correos (prod: int = Path(..., description="Specify to request from PROD or PRE PROD"),
+                            shipments: str = Path(..., description="List of shipment codes to trace"),
+                            languageCode: Optional[str] = "ES",
+                            showTraceHistory: Optional[int] = 1): #Path(1, description="0 - Show only last trace, 1 - Show all trace history")):
+
+    if prod == 0:
+        user, password = TRACK_PRE_AUTH 
+        url = TRACK_PRE_URL
+    else:
+        user, password = TRACK_AUTH  
+        url = TRACK_URL
+
+    params={'envios': shipments,
+            'codIdioma': languageCode,
+            'indUltEvento': "N" if showTraceHistory == 1 else "S"}
+    encoded_ath = base64.b64encode(str(user+":"+password).encode("utf-8")).decode()
+    # print(f"str(user+':'+password).encode('base64') = str({user}:{password}).encode('base64') = {encoded_ath}")
+    headers = {
+        "Authorization": f"Basic {encoded_ath}",
+        "Content-Type": "application/json"}
+        #"": shipments}
+    # print(f'headers: {headers}')
+
+    # url = "https://localizador.correos.es/canonico/eventos_envio_servicio_auth/"
+    url += shipments+"?"+f"&codIdioma={languageCode}"+"&indUltEvento=" + "N" if showTraceHistory == 1 else "S"
+    response = {"success": 0}
+    try:
+        #url = "https://localizador.correos.es/canonico/eventos_envio_servicio_auth/"#PQ43B404AA015110128001N?codIdioma=ES&indUltEvento=N"
+        print(url)
+        response = requests.get(url, headers=headers)#, params=params)
+        print(response.status_code)
+    except Exception:
+         print("Couldn't successfuly execute this request!")
+    print('response',response)
+    #response = requests.text
+
+    return response
