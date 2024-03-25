@@ -190,15 +190,12 @@ async def preregister_correos(req: Shipment):
 @app.post("/Pickup",
           description="Setup a pickup from correos for a previously registered shipment")
 async def pickup_correos (req: Recogidas_Request):
-    #print(req)
-    #print(req.recogidasDetalles)
-
+    #print('Correos Pickup start:',req)
     if req.prod == 0:
         auth = PICKUP_PRE_AUTH
         url = PICKUP_PRE_URL
         req.numContrato = 99999999
         req.numDetallable = 99999999
-        req.recogidasDetalles.codAnexo = "091"
     else:
         auth = PICKUP_AUTH
         url = PICKUP_URL
@@ -214,17 +211,17 @@ async def pickup_correos (req: Recogidas_Request):
     <soapenv:Body>
         <ser:SolicitudRegistroRecogida>
             <ReferenciaRelacionPaP>{req.referenciaRelacionPaP}</ReferenciaRelacionPaP>
-            <TipoOperacion>>{req.tipoOperacion}</TipoOperacion>
-            <FechaOperacion>>{req.fechaOperacion}</FechaOperacion>
-            <NumContrato>>>{req.numContrato}</NumContrato>
-            <NumDetallable>>{req.numDetallable}</NumDetallable>
-            <CodSistema>>{req.CodSistema}</CodSistema>
-            <CodUsuario>>{req.codUsuario}</CodUsuario>
+            <TipoOperacion>{req.tipoOperacion}</TipoOperacion>
+            <FechaOperacion>{req.fechaOperacion}</FechaOperacion>
+            <NumContrato>{req.numContrato}</NumContrato>
+            <NumDetallable>{req.numDetallable}</NumDetallable>
+            <CodSistema>{req.CodSistema}</CodSistema>
+            <CodUsuario>mario@adresles.com</CodUsuario>
             <ser1:Recogida>
                 <ReferenciaRecogida>{req.recogidasDetalles.referenciaRecogida if req.recogidasDetalles.referenciaRecogida != "" else req.referenciaRelacionPaP}</ReferenciaRecogida>
                 <FecRecogida>{req.recogidasDetalles.fecRecogida}</FecRecogida>
                 <HoraRecogida>{req.recogidasDetalles.horaRecogida}</HoraRecogida>
-                <CodAnexo>{req.recogidasDetalles.codAnexo}</CodAnexo>
+                <CodAnexo>091</CodAnexo>
                 <NomNombreViaRec>{req.recogidasDetalles.nomNombreViaRec}</NomNombreViaRec>
                 <NomLocalidadRec>{req.recogidasDetalles.nomLocalidadRec}</NomLocalidadRec>
                 <CodigoPostalRecogida>{req.recogidasDetalles.codigoPostalRecogida}</CodigoPostalRecogida>
@@ -244,17 +241,17 @@ async def pickup_correos (req: Recogidas_Request):
                     <CodigoEnvio>{i}</CodigoEnvio>
                     """
     
-    payload += f"""
-                </ser1:ListaCodEnvios>
+    payload += f"""</ser1:ListaCodEnvios>
             </ser1:Recogida>
         </ser:SolicitudRegistroRecogida>
     </soapenv:Body>
 </soapenv:Envelope>
 """
+    # print(f"payload type: {type(payload)}\npayload content:{payload}")
 
-    response = requests.post(url=url, auth=auth, headers=headers, data=payload)
+    response = requests.post(url=url, auth=auth, headers=headers, data=payload, verify=False)
     response_body = xmltodict.parse(response.text)['soapenv:Envelope']['soapenv:Body']['SolicitudRegistroRecogidaResult']['RespuestaSolicitudRegistroRecogida']
-
+    print(f"response = {response_body}")
     devuelve = Recodigas_Response(codigoError=response_body['CodigoError'],
                                   descripcionError=response_body['DescripcionError'],
                                   codSolicitud=response_body['CodSolicitud'])
@@ -280,7 +277,7 @@ async def tracking_correos (prod: int = Path(..., description="Specify to reques
     encoded_ath = base64.b64encode(str(user+":"+password).encode("utf-8")).decode()
     # print(f"str(user+':'+password).encode('base64') = str({user}:{password}).encode('base64') = {encoded_ath}")
     headers = {
-        "Authorization": f"Basic {encoded_ath}",
+        "Authorization": f"Bearer {encoded_ath}",
         "Content-Type": "application/json"}
         #"": shipments}
     # print(f'headers: {headers}')
