@@ -241,3 +241,9 @@ async def shipment_create_envios_perros(req: ReqShipmentCreate):
     #prueba = recogida_estado
     return response3
 
+@app.get("/shipment_status")
+async def shipment_create_envios_perros(req: ReqStatus):
+    
+    
+    
+    return ''
