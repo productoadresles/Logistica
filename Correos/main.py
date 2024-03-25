@@ -194,11 +194,13 @@ async def pickup_correos (req: Recogidas_Request):
     if req.prod == 0:
         auth = PICKUP_PRE_AUTH
         url = PICKUP_PRE_URL
+        codUsuario = "WSRECOGIDASPRE"
         req.numContrato = 99999999
         req.numDetallable = 99999999
     else:
         auth = PICKUP_AUTH
         url = PICKUP_URL
+        codUsuario = "mario@adresles.com"
 
     # Cabeceras
     headers = {
@@ -216,7 +218,7 @@ async def pickup_correos (req: Recogidas_Request):
             <NumContrato>{req.numContrato}</NumContrato>
             <NumDetallable>{req.numDetallable}</NumDetallable>
             <CodSistema>{req.CodSistema}</CodSistema>
-            <CodUsuario>mario@adresles.com</CodUsuario>
+            <CodUsuario>{codUsuario}</CodUsuario>
             <ser1:Recogida>
                 <ReferenciaRecogida>{req.recogidasDetalles.referenciaRecogida if req.recogidasDetalles.referenciaRecogida != "" else req.referenciaRelacionPaP}</ReferenciaRecogida>
                 <FecRecogida>{req.recogidasDetalles.fecRecogida}</FecRecogida>
