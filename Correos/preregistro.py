@@ -26,9 +26,6 @@ class PreRegister_Response(BaseModel):
 ## Pre registro package request     
 class Package(BaseModel):
     peso: int
-    largo: Optional[int] = None
-    alto: Optional[int] = None
-    ancho: Optional[int] = None
     observaciones_salida: Optional[str] = None
 
 ## Pre registro shipment request

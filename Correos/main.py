@@ -136,9 +136,6 @@ async def preregister_correos(req: Shipment):
                                 <prer:Valor>{packages.peso}</prer:Valor>
                             </prer:Peso>
                         </prer:Pesos>
-                        <prer:Largo>{packages.largo}</prer:Largo>
-                        <prer:Alto>{packages.alto}</prer:Alto>
-                        <prer:Ancho>{packages.ancho}</prer:Ancho>
                         <Observaciones1>{packages.observaciones_salida}</Observaciones1>
                     </prer:Envio>                        
                 """
@@ -163,13 +160,15 @@ async def preregister_correos(req: Shipment):
     #print(payload+payload2+payload3)
     response = requests.post( url = url, headers=headers, auth=auth, data=(payload+payload2+payload3).encode("utf-8"))
     contesta = (response.text)
-    print('Response: ',response)
+    print(f'url: {url}, auth: {auth}\ndata: {payload+payload2+payload3}')
+    print('Response: ',response.url)
     #print('Contesta: ',contesta)
 
     contesta_dict = xmltodict.parse(contesta)
 
     bulto = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['Bultos']['Bulto']
-
+    print(f"alerta: {contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto'].keys()}")
+    print(f"Bulto length: {len(bulto)}")
     devuelve = PreRegister_Response(
         resultado = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['Resultado'],
         codExpedicion = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['CodExpedicion'],
