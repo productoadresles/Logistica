@@ -160,27 +160,43 @@ async def preregister_correos(req: Shipment):
     #print(payload+payload2+payload3)
     response = requests.post( url = url, headers=headers, auth=auth, data=(payload+payload2+payload3).encode("utf-8"))
     contesta = (response.text)
-    print(f'url: {url}, auth: {auth}\ndata: {payload+payload2+payload3}')
-    print('Response: ',response.url)
+    #print(f'url: {url}, auth: {auth}\ndata: {payload+payload2+payload3}')
+    #print('Response: ',response.url)
     #print('Contesta: ',contesta)
 
     contesta_dict = xmltodict.parse(contesta)
 
     bulto = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['Bultos']['Bulto']
-    print(f"alerta: {contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto'].keys()}")
-    print(f"Bulto length: {len(bulto)}")
+
+    bultos = []
+
+    if type(bulto) is dict: 
+        print(f"Bulto is a dictionary: {type(bulto)}, Keys: {bulto.keys()}")
+        bultos = [PreRegister_Response_Package(
+        numBulto = bulto['NumBulto'], 
+        codEnvio = bulto['CodEnvio'], 
+        codManifiesto = bulto['CodManifiesto'], 
+        ficheiro = PreRegister_Response_File(nombreFicheiro=bulto['Etiqueta']['Etiqueta_pdf']['NombreF'],
+                                            tipoDoc=bulto['Etiqueta']['Etiqueta_pdf']['Tipo_Doc'],
+                                            ficheiroBinario=bulto['Etiqueta']['Etiqueta_pdf']['Fichero']
+    ))]
+        
+    elif type(bulto) is list:
+        print(f"Bulto is a list: {type(bulto)}, Length: {len(bulto)}")
+        bultos = [PreRegister_Response_Package(
+            numBulto = int(b['NumBulto']), 
+            codEnvio = b['CodEnvio'], 
+            codManifiesto = b['CodManifiesto'], 
+            ficheiro = PreRegister_Response_File(nombreFicheiro=b['Etiqueta']['Etiqueta_pdf']['NombreF'],
+                                            tipoDoc=b['Etiqueta']['Etiqueta_pdf']['Tipo_Doc'],
+                                            ficheiroBinario=b['Etiqueta']['Etiqueta_pdf']['Fichero']
+        )) for b in bulto]
+    
     devuelve = PreRegister_Response(
         resultado = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['Resultado'],
         codExpedicion = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['CodExpedicion'],
         fechaRespuesta = contesta_dict['soapenv:Envelope']['soapenv:Body']['RespuestaPreregistroEnvioMultibulto']['FechaRespuesta'],
-        bultos = [PreRegister_Response_Package(
-            numBulto = b['NumBulto'], 
-            codEnvio = b['CodEnvio'], 
-            codManifiesto = b['CodManifiesto'], 
-            ficheiro = PreRegister_Response_File(nombreFicheiro=b['Etiqueta']['Etiqueta_pdf']['NombreF'],
-                                               tipoDoc=b['Etiqueta']['Etiqueta_pdf']['Tipo_Doc'],
-                                               ficheiroBinario=b['Etiqueta']['Etiqueta_pdf']['Fichero']
-        )) for b in bulto]
+        bultos = bultos            
     )
     # print(payload+payload2+payload3)
     #print('Resultado:',devuelve.resultado, ', codExpedicion:', devuelve.codExpedicion, ', fechaRespuesta:',devuelve.fechaRespuesta, ', numBultos:',len(devuelve.bultos))
