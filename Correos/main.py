@@ -171,7 +171,7 @@ async def preregister_correos(req: Shipment):
     bultos = []
 
     if type(bulto) is dict: 
-        print(f"Bulto is a dictionary: {type(bulto)}, Keys: {bulto.keys()}")
+        # print(f"Bulto is a dictionary: {type(bulto)}, Keys: {bulto.keys()}")
         bultos = [PreRegister_Response_Package(
         numBulto = bulto['NumBulto'], 
         codEnvio = bulto['CodEnvio'], 
@@ -182,7 +182,7 @@ async def preregister_correos(req: Shipment):
     ))]
         
     elif type(bulto) is list:
-        print(f"Bulto is a list: {type(bulto)}, Length: {len(bulto)}")
+        # print(f"Bulto is a list: {type(bulto)}, Length: {len(bulto)}")
         bultos = [PreRegister_Response_Package(
             numBulto = int(b['NumBulto']), 
             codEnvio = b['CodEnvio'], 
